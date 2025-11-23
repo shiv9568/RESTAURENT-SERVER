@@ -16,6 +16,7 @@ import deliveryZonesRoutes from './routes/deliveryZones.js';
 import restaurantBrandRoutes from './routes/restaurantBrand.js';
 import adminRoutes from './routes/admin.js';
 import tablesRoutes from './routes/tables.js';
+import reviewsRoutes from './routes/reviews.js';
 import User from './models/User.js';
 
 dotenv.config();
@@ -80,6 +81,7 @@ app.use('/api/delivery-zones', deliveryZonesRoutes);
 app.use('/api/restaurant-brand', restaurantBrandRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/tables', tablesRoutes);
+app.use('/api/reviews', reviewsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -159,4 +161,3 @@ mongoose.connect(MONGODB_URI, {
   });
 
 export default app;
-

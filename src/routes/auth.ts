@@ -6,9 +6,6 @@ import { OAuth2Client } from 'google-auth-library';
 const router = express.Router();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
-
 // Register
 router.post('/register', async (req: Request, res: Response) => {
   try {
@@ -25,8 +22,8 @@ router.post('/register', async (req: Request, res: Response) => {
     await user.save();
 
     // Generate token
-    const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN,
+    const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET || 'your-secret-key', {
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
     });
 
     res.status(201).json({
@@ -61,8 +58,8 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // Generate token
-    const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN,
+    const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET || 'your-secret-key', {
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
     });
 
     res.json({
@@ -120,8 +117,8 @@ router.post('/google', async (req: Request, res: Response) => {
     }
 
     // Generate token
-    const jwtToken = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN,
+    const jwtToken = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET || 'your-secret-key', {
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
     });
 
     res.json({
@@ -137,6 +134,40 @@ router.post('/google', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Google login error:', error);
     res.status(400).json({ error: 'Google login failed' });
+  }
+});
+
+// Forgot Password - Demo endpoint (simulates email sending)
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Check if user exists
+    const user = await User.findOne({ email });
+
+    // For security, always return success even if user doesn't exist
+    // In production, you would:
+    // 1. Generate a reset token: const resetToken = crypto.randomBytes(32).toString('hex');
+    // 2. Hash and store it: user.resetToken = hash(resetToken); user.resetTokenExpiry = Date.now() + 3600000;
+    // 3. Send email with link: sendEmail(email, `Reset link: ${FRONTEND_URL}/reset-password/${resetToken}`);
+
+    // For demo, we'll just log and return success
+    console.log(`Password reset requested for: ${email}`);
+    if (user) {
+      console.log(`User found: ${user.name}`);
+    }
+
+    res.json({
+      message: 'If an account exists with this email, a password reset link has been sent.',
+      success: true
+    });
+  } catch (error: any) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Failed to process request' });
   }
 });
 
@@ -177,7 +208,7 @@ router.post('/admin-login', async (req: Request, res: Response) => {
         email: user.email,
         role: user.role
       },
-      JWT_SECRET,
+      process.env.JWT_SECRET || 'your-secret-key',
       {
         expiresIn: '7d', // Admin sessions last 7 days
       }
@@ -226,7 +257,7 @@ router.post('/otp/verify', async (req: Request, res: Response) => {
     await user.save();
   }
   // Issue JWT
-  const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
   // Clean OTP
   delete otpStore[phone];
   res.status(200).json({
