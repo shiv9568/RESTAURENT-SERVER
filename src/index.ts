@@ -17,9 +17,35 @@ import restaurantBrandRoutes from './routes/restaurantBrand.js';
 import adminRoutes from './routes/admin.js';
 import tablesRoutes from './routes/tables.js';
 import reviewsRoutes from './routes/reviews.js';
+import groupOrdersRoutes from './routes/groupOrders.js';
 import User from './models/User.js';
 
 dotenv.config();
+
+async function seedAdminUser() {
+  try {
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'change-me';
+    const existingAdmin = await User.findOne({ email: adminEmail });
+
+    if (!existingAdmin) {
+      const adminUser = new User({
+        name: 'Admin User',
+        email: adminEmail,
+        password: adminPassword,
+        role: 'admin',
+      });
+      await adminUser.save();
+      console.log('✅ Default admin user created');
+      console.log(`   Email: ${adminEmail}`);
+      console.log(`   Password: ${adminPassword}`);
+    } else {
+      console.log('ℹ️  Admin user already exists');
+    }
+  } catch (error: any) {
+    console.error('⚠️  Error seeding admin user:', error.message);
+  }
+}
 
 const app = express();
 const httpServer = createServer(app);
@@ -39,6 +65,12 @@ app.use((req, res, next) => {
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
+
+  socket.on('join_group', (groupCode) => {
+    socket.join(`group_${groupCode}`);
+    console.log(`Socket ${socket.id} joined group ${groupCode}`);
+  });
+
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
   });
@@ -82,36 +114,13 @@ app.use('/api/restaurant-brand', restaurantBrandRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/tables', tablesRoutes);
 app.use('/api/reviews', reviewsRoutes);
+app.use('/api/group-orders', groupOrdersRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
 });
 
-// Seed default admin user
-async function seedAdminUser() {
-  try {
-    const adminEmail = 'admin@gmail.com';
-    const existingAdmin = await User.findOne({ email: adminEmail });
-
-    if (!existingAdmin) {
-      const adminUser = new User({
-        name: 'Admin User',
-        email: adminEmail,
-        password: 'admin123',
-        role: 'admin',
-      });
-      await adminUser.save();
-      console.log('✅ Default admin user created');
-      console.log(`   Email: ${adminEmail}`);
-      console.log(`   Password: admin123`);
-    } else {
-      console.log('ℹ️  Admin user already exists');
-    }
-  } catch (error: any) {
-    console.error('⚠️  Error seeding admin user:', error.message);
-  }
-}
 
 // Connect to MongoDB with improved connection options
 mongoose.connect(MONGODB_URI, {
