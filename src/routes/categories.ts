@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
-import Category from '../models/Category.js';
-import FoodItem from '../models/FoodItem.js';
+import Category from '../models/Category';
+import FoodItem from '../models/FoodItem';
 
 const router = express.Router();
 
@@ -14,13 +14,13 @@ router.get('/', async (req: Request, res: Response) => {
     }
 
     const categories = await Category.find(filter).sort({ name: 1 });
-    
+
     // Get items for each category
     const categoriesWithItems = await Promise.all(
       categories.map(async (category) => {
         const categoryId = category._id.toString();
         // Query items by categoryId (exact match) OR by category name (fallback)
-        const items = await FoodItem.find({ 
+        const items = await FoodItem.find({
           $or: [
             { categoryId: categoryId },
             { category: category.name }

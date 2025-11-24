@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
-import { Review } from '../models/Review.js';
-import FoodItem from '../models/FoodItem.js';
+import { Review } from '../models/Review';
+import FoodItem from '../models/FoodItem';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 

@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import GroupOrder from '../models/GroupOrder.js';
+import GroupOrder from '../models/GroupOrder';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 

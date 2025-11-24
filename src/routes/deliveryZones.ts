@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import DeliveryZone from '../models/DeliveryZone.js';
+import DeliveryZone from '../models/DeliveryZone';
 
 const router = express.Router();
 

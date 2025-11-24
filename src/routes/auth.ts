@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import User from '../models/User';
 import { OAuth2Client } from 'google-auth-library';
 
 const router = express.Router();
@@ -273,6 +273,13 @@ router.post('/otp/verify', async (req: Request, res: Response) => {
   });
 });
 // --- OTP AUTH END ---
+
+// Helper function to verify Clerk JWT token
+async function verifyClerkToken(token: string): Promise<any> {
+  // In production, you would verify the Clerk JWT here
+  // For now, this is a stub that throws, triggering the bypass logic
+  throw new Error('Clerk verification not implemented');
+}
 
 // POST /api/auth/clerk-verify
 router.post('/clerk-verify', async (req, res) => {

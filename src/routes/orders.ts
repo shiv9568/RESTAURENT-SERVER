@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import Order from '../models/Order.js';
+import Order from '../models/Order';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 

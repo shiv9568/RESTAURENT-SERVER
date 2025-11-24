@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import Order from '../models/Order.js';
+import Order from '../models/Order';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
@@ -10,16 +10,16 @@ function requireAdmin(req: any, res: Response, next: Function) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Missing authentication token' });
   }
-  
+
   try {
     const token = authHeader.replace('Bearer ', '');
     const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    
+
     // Check if user has admin role
     if (decoded.role !== 'admin' && decoded.role !== 'super-admin') {
       return res.status(403).json({ error: 'Access denied. Admin privileges required.' });
     }
-    
+
     req.user = decoded;
     next();
   } catch (error: any) {
@@ -61,7 +61,8 @@ router.get('/dashboard/stats', requireAdmin, async (req: Request, res: Response)
     // Top selling items by quantity and revenue from order items
     const topItemsAgg = await Order.aggregate([
       { $unwind: '$items' },
-      { $group: {
+      {
+        $group: {
           _id: { itemId: '$items.itemId', name: '$items.name' },
           quantity: { $sum: '$items.quantity' },
           revenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } },

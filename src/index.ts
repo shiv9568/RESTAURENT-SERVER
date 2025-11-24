@@ -18,7 +18,7 @@ import adminRoutes from './routes/admin';
 import tablesRoutes from './routes/tables';
 import reviewsRoutes from './routes/reviews';
 import groupOrdersRoutes from './routes/groupOrders';
-import User from './models/User.js';
+import User from './models/User';
 
 dotenv.config();
 
