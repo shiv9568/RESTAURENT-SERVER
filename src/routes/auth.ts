@@ -23,7 +23,7 @@ router.post('/register', async (req: Request, res: Response) => {
 
     // Generate token
     const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET || 'your-secret-key', {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+      expiresIn: '7d',
     });
 
     res.status(201).json({
@@ -59,7 +59,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     // Generate token
     const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET || 'your-secret-key', {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+      expiresIn: '7d',
     });
 
     res.json({
@@ -118,7 +118,7 @@ router.post('/google', async (req: Request, res: Response) => {
 
     // Generate token
     const jwtToken = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET || 'your-secret-key', {
-      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+      expiresIn: '7d',
     });
 
     res.json({
@@ -257,7 +257,7 @@ router.post('/otp/verify', async (req: Request, res: Response) => {
     await user.save();
   }
   // Issue JWT
-  const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
+  const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '7d' });
   // Clean OTP
   delete otpStore[phone];
   res.status(200).json({

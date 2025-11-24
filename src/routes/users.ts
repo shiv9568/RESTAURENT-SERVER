@@ -183,7 +183,7 @@ router.put('/:id/addresses/:addressId', authMiddleware, async (req, res) => {
   if (idx === -1) return res.status(404).json({ error: 'Address not found' });
   const update = req.body;
   if (update.isDefault) user.addresses.forEach(a => a.isDefault = false);
-  user.addresses[idx] = { ...user.addresses[idx].toObject?.() ?? user.addresses[idx], ...update };
+  Object.assign(user.addresses[idx], update);
   await user.save();
   res.json(user.addresses);
 });

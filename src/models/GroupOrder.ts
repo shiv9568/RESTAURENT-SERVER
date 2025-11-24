@@ -9,6 +9,7 @@ export interface IGroupOrder extends Document {
         joinedAt: Date;
     }>;
     items: Array<{
+        _id?: mongoose.Types.ObjectId;
         foodItem: mongoose.Types.ObjectId;
         name: string;
         price: number;

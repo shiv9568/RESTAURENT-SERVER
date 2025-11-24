@@ -156,7 +156,7 @@ mongoose.connect(MONGODB_URI, {
 
     // ... (existing routes)
 
-    httpServer.listen(PORT, '0.0.0.0', () => {
+    httpServer.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📡 Network access: http://192.168.1.110:${PORT}`);
       console.log(`🔌 Socket.IO enabled`);
