@@ -77,8 +77,17 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
 
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
-    if (email !== undefined) updateData.email = email;
     if (phoneNumber !== undefined) updateData.phone = phoneNumber;
+
+    // If email is being updated, check for uniqueness
+    if (email !== undefined) {
+      // Check if another user already has this email
+      const existingUser = await User.findOne({ email, _id: { $ne: requester.userId } });
+      if (existingUser) {
+        return res.status(400).json({ error: 'Email already in use by another account' });
+      }
+      updateData.email = email;
+    }
 
     const user = await User.findByIdAndUpdate(
       requester.userId,
@@ -96,6 +105,10 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
       mobile: user.phone || '', // Map phone to mobile
     });
   } catch (error: any) {
+    // Handle duplicate key error explicitly if it slips through
+    if (error.code === 11000) {
+      return res.status(400).json({ error: 'Email or phone number already in use' });
+    }
     res.status(400).json({ error: error.message });
   }
 });
