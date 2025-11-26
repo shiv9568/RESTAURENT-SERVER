@@ -19,6 +19,7 @@ import tablesRoutes from './routes/tables';
 import reviewsRoutes from './routes/reviews';
 import groupOrdersRoutes from './routes/groupOrders';
 import reportsRoutes from './routes/reports';
+import chatRoutes from './routes/chat';
 import User from './models/User';
 
 dotenv.config();
@@ -95,10 +96,17 @@ const allowedOrigins = process.env.FRONTEND_URL
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(null, true); // Allow all origins in development
+      // In development, you might want to allow all, but in production, block it.
+      if (process.env.NODE_ENV === 'development') {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
     }
   },
   credentials: true
@@ -122,6 +130,7 @@ app.use('/api/tables', tablesRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/group-orders', groupOrdersRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -165,7 +174,7 @@ mongoose.connect(MONGODB_URI, {
 
     httpServer.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📡 Network access: http://192.168.1.110:${PORT}`);
+      // console.log(`📡 Network access: http://192.168.1.110:${PORT}`);
       console.log(`🔌 Socket.IO enabled`);
     });
   })

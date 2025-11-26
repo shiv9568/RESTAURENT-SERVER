@@ -290,8 +290,8 @@ router.post('/clerk-verify', async (req, res) => {
     try {
       payload = await verifyClerkToken(token);
     } catch (e) {
-      const allowBypass = (process.env.ALLOW_AUTH_BYPASS ?? (process.env.NODE_ENV !== 'production' ? 'true' : 'false')) as string;
-      if (allowBypass.toLowerCase() === 'true') {
+      const allowBypass = process.env.ALLOW_AUTH_BYPASS === 'true';
+      if (allowBypass) {
         // Minimal payload fallback for dev
         payload = {
           sub: 'dev-clerk-id',
@@ -342,7 +342,13 @@ router.post('/setup-admin-credentials', async (req: Request, res: Response) => {
     const { email, password, secretKey } = req.body;
 
     // Verify secret key
-    const expectedSecret = process.env.ADMIN_SETUP_SECRET || 'developer-secret-key';
+    // Verify secret key
+    const expectedSecret = process.env.ADMIN_SETUP_SECRET;
+    if (!expectedSecret) {
+      console.error('ADMIN_SETUP_SECRET is not set');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+
     if (secretKey !== expectedSecret) {
       return res.status(403).json({ error: 'Invalid secret key' });
     }
