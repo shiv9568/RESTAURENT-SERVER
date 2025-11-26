@@ -72,48 +72,46 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
     const requester: any = (req as any).user;
     const { name, email, mobile, phone } = req.body;
 
-    // Use mobile or phone (mobile takes precedence)
-    const phoneNumber = mobile || phone;
-
-    const updateData: any = {};
-    if (name !== undefined) updateData.name = name;
-    if (phoneNumber !== undefined) updateData.phone = phoneNumber;
-
-    // If email is being updated, check for uniqueness
-    if (email !== undefined) {
-      // Check if another user already has this email
-      const existingUser = await User.findOne({ email, _id: { $ne: requester.userId } });
-      if (existingUser) {
-        return res.status(400).json({ error: 'Email already in use by another account' });
-      }
-      updateData.email = email;
-    }
-
-    const user = await User.findByIdAndUpdate(
-      requester.userId,
-      updateData,
-      { new: true, runValidators: true }
-    ).select('-password');
-
+    const user = await User.findById(requester.userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Update basic fields
+    if (name !== undefined) user.name = name;
+
+    // Update phone/mobile (keep them synced or update both)
+    if (phone !== undefined) user.phone = phone;
+    if (mobile !== undefined) user.mobile = mobile;
+    // If one is provided but not the other, sync them for backward compatibility
+    if (phone && !mobile) user.mobile = phone;
+    if (mobile && !phone) user.phone = mobile;
+
+    // Only update email if it has actually changed
+    if (email !== undefined) {
+      const newEmail = email.toLowerCase().trim();
+      if (newEmail !== user.email) {
+        user.email = newEmail;
+      }
+    }
+
+    await user.save();
+
     res.json({
       ...user.toObject(),
       id: user._id.toString(),
-      mobile: user.phone || '', // Map phone to mobile
+      mobile: user.mobile || user.phone || '',
+      phone: user.phone || user.mobile || '',
     });
   } catch (error: any) {
-    // Handle duplicate key error explicitly if it slips through
+    console.error('[Profile Update Error]', error);
     if (error.code === 11000) {
-      return res.status(400).json({ error: 'Email or phone number already in use' });
+      return res.status(400).json({ error: 'Email already in use' });
     }
     res.status(400).json({ error: error.message });
   }
 });
 
-// Change Password
 router.post('/change-password', authMiddleware, async (req: Request, res: Response) => {
   try {
     const requester: any = (req as any).user;
