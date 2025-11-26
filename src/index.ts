@@ -18,6 +18,7 @@ import adminRoutes from './routes/admin';
 import tablesRoutes from './routes/tables';
 import reviewsRoutes from './routes/reviews';
 import groupOrdersRoutes from './routes/groupOrders';
+import reportsRoutes from './routes/reports';
 import User from './models/User';
 
 dotenv.config();
@@ -120,6 +121,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/tables', tablesRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/group-orders', groupOrdersRoutes);
+app.use('/api/reports', reportsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
