@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Backend API server for Foodie Dash",
   "main": "dist/index.js",
-  "type": "module",
   "scripts": {
     "dev": "nodemon --exec tsx src/index.ts",
     "build": "tsc",
@@ -22,6 +21,7 @@
     "google-auth-library": "^10.5.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.0.3",
+    "serverless-http": "^3.2.0",
     "socket.io": "^4.8.1",
     "uuid": "^13.0.0"
   },
