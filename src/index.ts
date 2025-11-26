@@ -24,8 +24,8 @@ dotenv.config();
 
 async function seedAdminUser() {
   try {
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'change-me';
+    const adminEmail = process.env.ADMIN_EMAIL || 'admin@gmail.com';
+    const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
     const existingAdmin = await User.findOne({ email: adminEmail });
 
     if (!existingAdmin) {
@@ -69,6 +69,11 @@ io.on('connection', (socket) => {
   socket.on('join_group', (groupCode) => {
     socket.join(`group_${groupCode}`);
     console.log(`Socket ${socket.id} joined group ${groupCode}`);
+  });
+
+  socket.on('table_connected', (tableNumber) => {
+    console.log(`Table ${tableNumber} connected`);
+    io.emit('admin:table_connected', { tableNumber, timestamp: new Date() });
   });
 
   socket.on('disconnect', () => {

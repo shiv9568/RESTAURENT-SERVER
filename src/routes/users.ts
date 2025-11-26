@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 
 const router = express.Router();
 
+console.log('Users routes loaded');
+
 // Middleware to check JWT
 function authMiddleware(req: Request, res: Response, next: any) {
   const authHeader = req.headers.authorization;
@@ -95,6 +97,31 @@ router.put('/profile', authMiddleware, async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+// Change Password
+router.post('/change-password', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const requester: any = (req as any).user;
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      return res.status(400).json({ error: 'New password is required' });
+    }
+
+    const user = await User.findById(requester.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Update password directly without checking current password
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -196,5 +223,4 @@ router.delete('/:id/addresses/:addressId', authMiddleware, async (req, res) => {
   res.json(user.addresses);
 });
 
-export default router;
-
+export default router
