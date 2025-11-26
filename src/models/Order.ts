@@ -6,6 +6,7 @@ export interface IOrderItem {
   price: number;
   quantity: number;
   image?: string;
+  selectedPortion?: string; // Added for portion sizes (Half/Full/etc)
 }
 
 export interface IOrder extends Document {
@@ -41,6 +42,7 @@ const OrderItemSchema = new Schema<IOrderItem>({
   price: { type: Number, required: true },
   quantity: { type: Number, required: true, min: 1 },
   image: { type: String },
+  selectedPortion: { type: String }, // Added for portion sizes
 }, { _id: false });
 
 const OrderSchema = new Schema<IOrder>(
@@ -104,4 +106,3 @@ OrderSchema.pre('save', async function (next) {
 });
 
 export default mongoose.model<IOrder>('Order', OrderSchema);
-

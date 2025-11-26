@@ -336,5 +336,59 @@ router.post('/clerk-verify', async (req, res) => {
   }
 });
 
+// Setup Admin Credentials (requires secret key)
+router.post('/setup-admin-credentials', async (req: Request, res: Response) => {
+  try {
+    const { email, password, secretKey } = req.body;
+
+    // Verify secret key
+    const expectedSecret = process.env.ADMIN_SETUP_SECRET || 'developer-secret-key';
+    if (secretKey !== expectedSecret) {
+      return res.status(403).json({ error: 'Invalid secret key' });
+    }
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // Find existing super-admin or create new one
+    let adminUser = await User.findOne({ role: 'super-admin' });
+
+    if (adminUser) {
+      // Update existing super-admin
+      adminUser.email = email.toLowerCase().trim();
+      adminUser.password = password; // Will be hashed by pre-save hook
+      await adminUser.save();
+      return res.json({ message: 'Admin credentials updated successfully', email: adminUser.email });
+    }
+
+    // Check if user with this email already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existingUser) {
+      // Promote existing user to super-admin
+      existingUser.role = 'super-admin';
+      existingUser.password = password;
+      await existingUser.save();
+      return res.json({ message: 'Existing user promoted to super-admin with new credentials', email: existingUser.email });
+    }
+
+    // Create new super-admin
+    const newAdmin = new User({
+      name: 'Super Admin',
+      email: email.toLowerCase().trim(),
+      password: password,
+      role: 'super-admin',
+      phone: '0000000000'
+    });
+
+    await newAdmin.save();
+    res.json({ message: 'New super-admin created successfully', email: newAdmin.email });
+
+  } catch (error: any) {
+    console.error('Setup admin error:', error);
+    res.status(500).json({ error: error.message || 'Failed to setup admin' });
+  }
+});
+
 export default router;
 

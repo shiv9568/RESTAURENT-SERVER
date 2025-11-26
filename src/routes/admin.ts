@@ -42,9 +42,13 @@ router.get('/dashboard/stats', requireAdmin, async (req: Request, res: Response)
       orderedAt: o.createdAt,
     }));
 
-    // Totals
-    const totalOrders = await Order.countDocuments();
+    // Totals - Exclude cancelled and rejected orders from count
+    const validStatuses = { status: { $nin: ['cancelled', 'rejected'] } };
+    const totalOrders = await Order.countDocuments(validStatuses);
+
+    // Revenue - ONLY count delivered orders (completed transactions)
     const revenueAgg = await Order.aggregate([
+      { $match: { status: 'delivered' } }, // Only delivered orders
       { $group: { _id: null, totalRevenue: { $sum: '$total' } } },
     ]);
     const totalRevenue = revenueAgg[0]?.totalRevenue || 0;
@@ -55,11 +59,12 @@ router.get('/dashboard/stats', requireAdmin, async (req: Request, res: Response)
       Order.countDocuments({ status: 'delivered' }),
     ]);
 
-    // Average order value
-    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    // Average order value (only delivered orders for accurate revenue calculation)
+    const averageOrderValue = completedOrders > 0 ? totalRevenue / completedOrders : 0;
 
-    // Top selling items by quantity and revenue from order items
+    // Top selling items - only from delivered orders
     const topItemsAgg = await Order.aggregate([
+      { $match: { status: 'delivered' } }, // Only delivered orders
       { $unwind: '$items' },
       {
         $group: {
@@ -94,5 +99,3 @@ router.get('/dashboard/stats', requireAdmin, async (req: Request, res: Response)
 });
 
 export default router;
-
-
