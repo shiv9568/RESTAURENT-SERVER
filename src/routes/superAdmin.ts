@@ -81,6 +81,13 @@ router.post('/notifications', async (req, res) => {
         const { title, message, type, expiresAt } = req.body;
         const notification = new SystemNotification({ title, message, type, expiresAt });
         await notification.save();
+
+        // Emit socket event
+        const io = (req as any).io;
+        if (io) {
+            io.emit('system_notification', notification);
+        }
+
         res.status(201).json(notification);
     } catch (error) {
         res.status(500).json({ message: 'Error creating notification' });
