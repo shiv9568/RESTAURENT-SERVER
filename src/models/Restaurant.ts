@@ -10,6 +10,8 @@ export interface IRestaurant extends Document {
   contactNumber?: string;
   deliveryZones?: string[];
   isClosed?: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const RestaurantSchema = new Schema<IRestaurant>(
