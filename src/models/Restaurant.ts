@@ -12,6 +12,7 @@ export interface IRestaurant extends Document {
   isClosed?: boolean;
   createdAt: Date;
   updatedAt: Date;
+  isCouponsEnabled?: boolean;
 }
 
 const RestaurantSchema = new Schema<IRestaurant>(
@@ -25,6 +26,7 @@ const RestaurantSchema = new Schema<IRestaurant>(
     contactNumber: { type: String },
     deliveryZones: [{ type: String }],
     isClosed: { type: Boolean, default: false },
+    isCouponsEnabled: { type: Boolean, default: true },
   },
   { timestamps: true }
 );
