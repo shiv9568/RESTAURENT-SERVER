@@ -21,6 +21,10 @@ import groupOrdersRoutes from './routes/groupOrders';
 import reportsRoutes from './routes/reports';
 import chatRoutes from './routes/chat';
 import User from './models/User';
+import logsRoutes from './routes/logs';
+import superAdminRoutes from './routes/superAdmin';
+import SystemLog from './models/SystemLog';
+import { sendSystemAlert } from './utils/email';
 
 dotenv.config();
 
@@ -78,6 +82,15 @@ io.on('connection', (socket) => {
     io.emit('admin:table_connected', { tableNumber, timestamp: new Date() });
   });
 
+  socket.on('service_request', (data) => {
+    console.log(`Service request from Table ${data.tableNumber}: ${data.requestType}`);
+    io.emit('admin:service_request', {
+      ...data,
+      timestamp: new Date(),
+      id: Date.now().toString()
+    });
+  });
+
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
   });
@@ -131,10 +144,51 @@ app.use('/api/reviews', reviewsRoutes);
 app.use('/api/group-orders', groupOrdersRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/logs', logsRoutes);
+app.use('/api/super-admin', superAdminRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
+});
+
+// Global Error Handler
+app.use(async (err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('🔥 Global Error:', err);
+
+  try {
+    const log = new SystemLog({
+      level: 'error',
+      message: err.message || 'Unknown Error',
+      details: {
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+        body: req.body,
+        query: req.query
+      },
+      service: 'backend'
+    });
+    await log.save();
+
+    const io = (req as any).io;
+    if (io) {
+      io.emit('system_error', log);
+    }
+
+    // Send email alert
+    sendSystemAlert(log);
+
+  } catch (logError) {
+    console.error('Failed to log error to DB:', logError);
+  }
+
+  if (!res.headersSent) {
+    res.status(500).json({
+      message: 'Internal Server Error',
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
 });
 
 
@@ -168,6 +222,10 @@ mongoose.connect(MONGODB_URI, {
 
     // Seed admin user
     await seedAdminUser();
+
+    // Initialize cron jobs
+    const { initCronJobs } = await import('./utils/cronJobs');
+    initCronJobs();
 
 
     // ... (existing routes)

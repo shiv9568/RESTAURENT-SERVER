@@ -5,6 +5,7 @@ export interface ITable extends Document {
   capacity?: number;
   status: 'available' | 'occupied' | 'reserved';
   qrCodeUrl?: string; // Optional: if we want to store the generated URL
+  currentSessionToken?: string; // Dynamic daily token for security
   restaurantId?: string; // If multi-tenant
   createdAt: Date;
   updatedAt: Date;
@@ -20,6 +21,7 @@ const TableSchema = new Schema<ITable>(
       default: 'available',
     },
     qrCodeUrl: { type: String },
+    currentSessionToken: { type: String },
     restaurantId: { type: String },
   },
   {
