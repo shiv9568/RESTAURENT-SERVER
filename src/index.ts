@@ -23,6 +23,7 @@ import chatRoutes from './routes/chat';
 import User from './models/User';
 import logsRoutes from './routes/logs';
 import superAdminRoutes from './routes/superAdmin';
+import salesRoutes from './routes/sales';
 import SystemLog from './models/SystemLog';
 import { sendSystemAlert } from './utils/email';
 
@@ -146,6 +147,7 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/super-admin', superAdminRoutes);
+app.use('/api/sales', salesRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import Order from '../models/Order';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
+import { updateSalesRecord, trackCancelledOrder } from '../utils/salesTracking';
 
 const router = express.Router();
 
@@ -247,6 +248,14 @@ router.put('/:id', async (req: Request, res: Response) => {
     }
 
     console.log(`[Orders API] Order updated: ${order.orderNumber}, status: ${order.status}`);
+
+    // Track sales if order is marked as delivered
+    if (order.status === 'delivered') {
+      await updateSalesRecord(order);
+    } else if (order.status === 'cancelled') {
+      await trackCancelledOrder(order);
+    }
+
     const orderId = (order._id as any).toString();
     res.json({
       ...order.toObject(),

@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import Order from '../models/Order';
+import SalesRecord from '../models/SalesRecord';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
@@ -42,62 +43,24 @@ router.get('/daily-sales', requireAdmin, async (req: Request, res: Response) => 
         start.setHours(0, 0, 0, 0);
         end.setHours(23, 59, 59, 999);
 
-        // Aggregate daily sales
-        const dailySales = await Order.aggregate([
-            {
-                $match: {
-                    createdAt: { $gte: start, $lte: end },
-                }
-            },
-            {
-                $group: {
-                    _id: {
-                        year: { $year: '$createdAt' },
-                        month: { $month: '$createdAt' },
-                        day: { $dayOfMonth: '$createdAt' }
-                    },
-                    totalOrders: { $sum: 1 },
-                    totalRevenue: {
-                        $sum: {
-                            $cond: [
-                                { $eq: ['$status', 'delivered'] },
-                                '$total',
-                                0
-                            ]
-                        }
-                    },
-                    deliveredOrders: {
-                        $sum: {
-                            $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0]
-                        }
-                    },
-                    cancelledOrders: {
-                        $sum: {
-                            $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0]
-                        }
-                    },
-                    pendingOrders: {
-                        $sum: {
-                            $cond: [{ $eq: ['$status', 'pending'] }, 1, 0]
-                        }
-                    },
-                }
-            },
-            {
-                $sort: { '_id.year': -1, '_id.month': -1, '_id.day': -1 }
-            }
-        ]);
+        // Fetch from SalesRecord (Persistent Data)
+        const salesRecords = await SalesRecord.find({
+            date: { $gte: start, $lte: end }
+        }).sort({ date: -1 });
 
         // Format the results
-        const formattedSales = dailySales.map(day => ({
-            date: `${day._id.year}-${String(day._id.month).padStart(2, '0')}-${String(day._id.day).padStart(2, '0')}`,
-            totalOrders: day.totalOrders,
-            totalRevenue: day.totalRevenue,
-            deliveredOrders: day.deliveredOrders,
-            cancelledOrders: day.cancelledOrders,
-            pendingOrders: day.pendingOrders,
-            averageOrderValue: day.deliveredOrders > 0 ? day.totalRevenue / day.deliveredOrders : 0,
-        }));
+        const formattedSales = salesRecords.map(record => {
+            const dateStr = record.date.toISOString().split('T')[0];
+            return {
+                date: dateStr,
+                totalOrders: record.totalOrders + (record.cancelledOrders || 0), // Total including cancelled
+                totalRevenue: record.totalRevenue,
+                deliveredOrders: record.totalOrders,
+                cancelledOrders: record.cancelledOrders || 0,
+                pendingOrders: 0, // We can't track pending in persistent storage easily, assume 0 for history
+                averageOrderValue: record.averageOrderValue,
+            };
+        });
 
         res.json(formattedSales);
     } catch (e: any) {
@@ -110,19 +73,25 @@ router.get('/today', requireAdmin, async (req: Request, res: Response) => {
     try {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+
+        // Try to get real-time data from Orders first (for pending status)
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
-
         const orders = await Order.find({
             createdAt: { $gte: today, $lt: tomorrow }
         });
 
+        // Get persistent data
+        const salesRecord = await SalesRecord.findOne({ date: today });
+
+        // Merge data - prefer SalesRecord for revenue/delivered/cancelled (persistent)
+        // prefer Orders for pending (real-time, transient)
         const stats = {
-            totalOrders: orders.length,
-            totalRevenue: orders.filter(o => o.status === 'delivered').reduce((sum, o) => sum + o.total, 0),
-            deliveredOrders: orders.filter(o => o.status === 'delivered').length,
+            totalOrders: (salesRecord?.totalOrders || 0) + (salesRecord?.cancelledOrders || 0) + (orders.filter(o => o.status === 'pending').length),
+            totalRevenue: salesRecord?.totalRevenue || 0,
+            deliveredOrders: salesRecord?.totalOrders || 0,
             pendingOrders: orders.filter(o => o.status === 'pending').length,
-            cancelledOrders: orders.filter(o => o.status === 'cancelled').length,
+            cancelledOrders: salesRecord?.cancelledOrders || 0,
         };
 
         res.json(stats);

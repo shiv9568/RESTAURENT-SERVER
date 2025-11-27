@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import Order from '../models/Order';
+import SalesRecord from '../models/SalesRecord';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
@@ -46,21 +47,11 @@ router.get('/dashboard/stats', requireAdmin, async (req: Request, res: Response)
     const validStatuses = { status: { $nin: ['cancelled', 'rejected'] } };
     const totalOrders = await Order.countDocuments(validStatuses);
 
-    // Revenue - ONLY count delivered orders (completed transactions)
-    const revenueAgg = await Order.aggregate([
-      { $match: { status: 'delivered' } }, // Only delivered orders
-      { $group: { _id: null, totalRevenue: { $sum: '$total' } } },
-    ]);
-    const totalRevenue = revenueAgg[0]?.totalRevenue || 0;
-
     // Status counts
-    const [pendingOrders, completedOrders] = await Promise.all([
+    const [pendingOrders, completedOrdersCount] = await Promise.all([
       Order.countDocuments({ status: 'pending' }),
       Order.countDocuments({ status: 'delivered' }),
     ]);
-
-    // Average order value (only delivered orders for accurate revenue calculation)
-    const averageOrderValue = completedOrders > 0 ? totalRevenue / completedOrders : 0;
 
     // Top selling items - only from delivered orders
     const topItemsAgg = await Order.aggregate([
@@ -83,8 +74,32 @@ router.get('/dashboard/stats', requireAdmin, async (req: Request, res: Response)
       revenue: it.revenue,
     }));
 
+    // Get persistent sales statistics from SalesRecord
+    // Today's sales
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todaySales = await SalesRecord.findOne({ date: today });
+
+    // This month's sales
+    const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const thisMonthSales = await SalesRecord.find({
+      date: { $gte: thisMonthStart }
+    });
+    const thisMonthRevenue = thisMonthSales.reduce((sum, record) => sum + record.totalRevenue, 0);
+    const thisMonthOrders = thisMonthSales.reduce((sum, record) => sum + record.totalOrders, 0);
+
+    // All-time sales from SalesRecord
+    const allTimeSales = await SalesRecord.find({});
+    const allTimeRevenue = allTimeSales.reduce((sum, record) => sum + record.totalRevenue, 0);
+    const allTimeOrdersFromSales = allTimeSales.reduce((sum, record) => sum + record.totalOrders, 0);
+
+    // Use persistent data for revenue and completed orders
+    const totalRevenue = allTimeRevenue;
+    const completedOrders = allTimeOrdersFromSales;
+    const averageOrderValue = completedOrders > 0 ? totalRevenue / completedOrders : 0;
+
     res.json({
-      totalOrders,
+      totalOrders, // This remains from Order collection (active + visible history)
       totalRevenue,
       pendingOrders,
       completedOrders,
@@ -92,6 +107,25 @@ router.get('/dashboard/stats', requireAdmin, async (req: Request, res: Response)
       topSellingItems,
       recentOrders,
       revenueChart: [],
+      // Persistent sales data (won't be lost when orders are cleared)
+      salesStatistics: {
+        today: {
+          revenue: todaySales?.totalRevenue || 0,
+          orders: todaySales?.totalOrders || 0,
+          items: todaySales?.totalItems || 0,
+          averageOrderValue: todaySales?.averageOrderValue || 0,
+        },
+        thisMonth: {
+          revenue: thisMonthRevenue,
+          orders: thisMonthOrders,
+          averageOrderValue: thisMonthOrders > 0 ? thisMonthRevenue / thisMonthOrders : 0,
+        },
+        allTime: {
+          revenue: allTimeRevenue,
+          orders: allTimeOrdersFromSales,
+          averageOrderValue: allTimeOrdersFromSales > 0 ? allTimeRevenue / allTimeOrdersFromSales : 0,
+        },
+      },
     });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
