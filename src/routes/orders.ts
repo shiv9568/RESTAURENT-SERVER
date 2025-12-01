@@ -75,6 +75,16 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// GET total order count (for validation)
+router.get('/count', async (req: Request, res: Response) => {
+  try {
+    const count = await Order.countDocuments();
+    res.json({ count });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // GET single order (simplified - no auth required)
 router.get('/:id', async (req: Request, res: Response) => {
   try {

@@ -129,6 +129,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(compression());
 
+import recommendationsRouter from './routes/recommendations';
+
+// ... (existing imports)
+
 // Routes
 app.use('/api/food-items', foodItemsRoutes);
 app.use('/api/categories', categoriesRoutes);
@@ -148,6 +152,7 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/super-admin', superAdminRoutes);
 app.use('/api/sales', salesRoutes);
+app.use('/api/recommendations', recommendationsRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
